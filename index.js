@@ -56,7 +56,7 @@ async function mapSurroundings(w,h) {
             min = i;
           }
           hmap[dx][dz] = {
-            y:(i - min) /(max - min) * 255,
+            y:0.5,
             type:block.name,
             h:i
           };
@@ -72,11 +72,18 @@ async function mapSurroundings(w,h) {
       }
     }
   }
-
+  console.log("a")
+  for(let dx = 0;dx < w; dx++) {
+    for(let dz = 0;dz < h; dz++) {
+      hmap[dx][dz].y = (hmap[dx][dz].h - min) / (max - min) * 255;
+    }
+  }
   io.emit("map", {
       w:w,
       h:h,
       map: hmap,
+      bot:bot.entity.position,
+      entities: Object.values(bot.entities).map(e=>({name:e.name,position:e.position,kind:e.kind})).filter(e => e.kind === "player")
   })
 }
 bot.once("spawn", ()=> {
@@ -91,9 +98,13 @@ bot.once("spawn", ()=> {
     }
   };
   
-  
+  let lastEmit = 0;
   fsm.addState("patrol", ()=> {
-    mapSurroundings(30,30)
+    if (Date.now() - lastEmit > 100) { // every 2 seconds
+    mapSurroundings(30, 30);
+    lastEmit = Date.now();
+    }
+    bot.setControlState("forward",true);
   })
   fsm.currentstate = "patrol"
   bot.on("physicsTick", ()=> {
